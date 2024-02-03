@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 
 def shunting_yard(infix):
-    specials = {"*": 60, "+": 55, "?": 50, ".": 40, "|": 20}
+    specials = {"*": 60, "+": 55, "?": 50, "|": 20}
 
     pofix, stack = "", ""
 
@@ -73,20 +73,11 @@ def thompsons_construction(pofix):
             nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
             # Pushes the new NFA to the stack
             nfaStack.append(NFA(start, accept))
-        # If c is the 'concatenate' operator
-        elif c == ".":
-            # Popping the stack, NOTE: stacks are L.I.F.O.
-            nfa2, nfa1 = nfaStack.pop(), nfaStack.pop()
-            # Merging the accept state of nfa1 to the start state of nfa2
-            nfa1.accept.edge1 = nfa2.start
-            # Appending the new nfa to the stack
-            nfaStack.append(NFA(nfa1.start, nfa2.accept))
-        # If c is the 'or' operator
         elif c == "|":
             #                 + --+ nfa1.start  nfa1.accept --+
-            #         edge1  /                                   \  edge1
-            # start --------+                                     +------ accept
-            #         edge2  \                                   /  edge2
+            #         edge1  /                                  \  edge1
+            # start --------+                                    +------ accept
+            #         edge2  \                                  /  edge2
             #                 + --+ nfa2.start  nfa2.accept --+
             #
             # stack <- (start, accept)
@@ -129,7 +120,7 @@ def thompsons_construction(pofix):
             nfa1.accept.edge1 = accept
             # Pushes the new NFA to the stack
             nfaStack.append(NFA(start, accept))
-        else:
+        else:  # char or dot
             #                    edge1
             # start[lable:c] -----------> accept
             #
@@ -152,21 +143,17 @@ def thompsons_construction(pofix):
     return result
 
 
-def followes(state):
-    # Create a new set, with state as its only member
+def follow_epsilons_or_dot(state):
     states = set()
     states.add(state)
 
-    # Check if state has arrows labelled e from it
+    # if state has a label of None (epsilon) or wildcard (dot)
     if state.label is None:
-        # If there's an 'edge1', follow it
         if state.edge1 is not None:
-            states |= followes(state.edge1)
-        # If there's an 'edge2', follow it
+            states |= follow_epsilons_or_dot(state.edge1)
         if state.edge2 is not None:
-            states |= followes(state.edge2)
+            states |= follow_epsilons_or_dot(state.edge2)
 
-    # Returns the set of states
     return states
 
 
@@ -181,15 +168,15 @@ def match(infix, string):
     nexts = set()
 
     # Add the start state to the current set
-    current |= followes(nfa.start)
+    current |= follow_epsilons_or_dot(nfa.start)
 
     # loop through each character in the string
     for s in string:
         # loop through the current set of states
         for c in current:
             # Check to see if state is labelled 's'
-            if c.label == s:
-                nexts |= followes(c.edge1)
+            if c.label in (s, "."):  # char or dot
+                nexts |= follow_epsilons_or_dot(c.edge1)
         # set current to next and clears out next
         current = nexts
         # next is back to an empty set
