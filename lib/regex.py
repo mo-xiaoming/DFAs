@@ -39,19 +39,23 @@ def shunting_yard(infix):
     return pofix
 
 
-class state:
+class State:
     label, edge1, edge2 = None, None, None
 
 
 @dataclass
-class nfa:
-    initial: state
-    accept: state
+class NFA:
+    start: State
+    accept: State
 
 
 def thompsons_construction(pofix):
     # Creates new empty set
     nfaStack = []
+
+    if len(pofix) == 0:
+        s = State()
+        return NFA(s, s)
 
     # looping through the postfix expression
     # one character at a time
@@ -60,86 +64,92 @@ def thompsons_construction(pofix):
         if c == "*":
             # Pops single NFA from the stack
             nfa1 = nfaStack.pop()
-            # Creating new initial and accept state
-            initial, accept = state(), state()
-            # Join the new initial state to nfa's
-            # initial state and new accept state
-            initial.edge1, initial.edge2 = nfa1.initial, accept
-            # Join old accept state to the new accept state and nfa's initial state
-            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.initial, accept
+            # Creating new start and accept state
+            start, accept = State(), State()
+            # Join the new start state to nfa's
+            # start state and new accept state
+            start.edge1, start.edge2 = nfa1.start, accept
+            # Join old accept state to the new accept state and nfa's start state
+            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
             # Pushes the new NFA to the stack
-            nfaStack.append(nfa(initial, accept))
+            nfaStack.append(NFA(start, accept))
         # If c is the 'concatenate' operator
         elif c == ".":
             # Popping the stack, NOTE: stacks are L.I.F.O.
             nfa2, nfa1 = nfaStack.pop(), nfaStack.pop()
-            # Merging the accept state of nfa1 to the initial state of nfa2
-            nfa1.accept.edge1 = nfa2.initial
+            # Merging the accept state of nfa1 to the start state of nfa2
+            nfa1.accept.edge1 = nfa2.start
             # Appending the new nfa to the stack
-            nfaStack.append(nfa(nfa1.initial, nfa2.accept))
+            nfaStack.append(NFA(nfa1.start, nfa2.accept))
         # If c is the 'or' operator
         elif c == "|":
-            #                 + --+ nfa1.initial  nfa1.accept --+
+            #                 + --+ nfa1.start  nfa1.accept --+
             #         edge1  /                                   \  edge1
-            # initial ------+                                     +------ accept
+            # start --------+                                     +------ accept
             #         edge2  \                                   /  edge2
-            #                 + --+ nfa2.initial  nfa2.accept --+
+            #                 + --+ nfa2.start  nfa2.accept --+
             #
-            # stack <- (initial, accept)
+            # stack <- (start, accept)
 
             # Popping the stack
             nfa2, nfa1 = nfaStack.pop(), nfaStack.pop()
-            # creates the initial state
-            initial = state()
-            initial.edge1, initial.edge2 = nfa1.initial, nfa2.initial
+            # creates the start state
+            start = State()
+            start.edge1, start.edge2 = nfa1.start, nfa2.start
             # creates new accept state connecting the accept states
-            accept = state()
+            accept = State()
             # Connects the new Accept state to the two NFA's popped from the stack
             nfa1.accept.edge1, nfa2.accept.edge1 = accept, accept
             # Pushes the new NFA to the stack
-            nfaStack.append(nfa(initial, accept))
+            nfaStack.append(NFA(start, accept))
         # If c is the 'plus' operator
         elif c == "+":
             # Pops single NFA from the stack
             nfa1 = nfaStack.pop()
-            # Creating new initial and accept state
-            initial, accept = state(), state()
-            # Join the new initial state to nfa's
-            # initial state and new accept state
-            initial.edge1 = nfa1.initial
-            # Join old accept state to the new accept state and nfa's initial state
-            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.initial, accept
+            # Creating new start and accept state
+            start, accept = State(), State()
+            # Join the new start state to nfa's
+            # start state and new accept state
+            start.edge1 = nfa1.start
+            # Join old accept state to the new accept state and nfa's start state
+            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
             # Pushes the new NFA to the stack
-            nfaStack.append(nfa(initial, accept))
+            nfaStack.append(NFA(start, accept))
         # if c is the '?' operator
         elif c == "?":
             # Pops a single NFA from the stack
             nfa1 = nfaStack.pop()
-            # Creates new initial and accept states for the new NFA
-            accept, initial = state(), state()
+            # Creates new start and accept states for the new NFA
+            accept, start = State(), State()
             # Joins the new accept state to the accept state of nfa1 and the new
-            # initial state to the initial state of nfa1
+            # start state to the start state of nfa1
             # Accept connected to inital because empty is acceptable
-            initial.edge1, initial.edge2 = nfa1.initial, accept
+            start.edge1, start.edge2 = nfa1.start, accept
             # Joins the old accept state to the new accept state
             nfa1.accept.edge1 = accept
             # Pushes the new NFA to the stack
-            nfaStack.append(nfa(initial, accept))
+            nfaStack.append(NFA(start, accept))
         else:
             #                    edge1
-            # initial[lable:c] -----------> accept
+            # start[lable:c] -----------> accept
             #
-            # stack <- (initial, accept)
+            # stack <- (start, accept)
 
-            # accept state, initial state - creating a new instance of the class
-            accept, initial = state(), state()
-            # joins the initial to a character, edge1 is a pointer which points to the accept state
-            initial.label, initial.edge1 = c, accept
+            # accept state, start state - creating a new instance of the class
+            accept, start = State(), State()
+            # joins the start to a character, edge1 is a pointer which points to the accept state
+            start.label, start.edge1 = c, accept
             # Appends the new NFA to the stack
-            nfaStack.append(nfa(initial, accept))
+            nfaStack.append(NFA(start, accept))
 
     # at this point, nfastack should have a single nfa on it
-    return nfaStack.pop()
+    # return nfaStack.pop()
+    result = nfaStack.pop()
+    while len(nfaStack) > 0:
+        f = nfaStack.pop()
+        f.accept.edge1 = result.start
+        result = NFA(f.start, result.accept)
+    return result
 
 
 def followes(state):
@@ -170,8 +180,8 @@ def match(infix, string):
     current = set()
     nexts = set()
 
-    # Add the initial state to the current set
-    current |= followes(nfa.initial)
+    # Add the start state to the current set
+    current |= followes(nfa.start)
 
     # loop through each character in the string
     for s in string:
@@ -186,13 +196,20 @@ def match(infix, string):
         nexts = set()
 
     # Checks if the accept state is in the set for current state
-    return nfa.accept in current
+    if nfa.accept in current:
+        return True
+
+    if not string and nfa.start == nfa.accept:
+        return True
+
+    return False
 
 
-# Testcases for the matchString function
-infixes = ["a.b.c*", "a.(b|d).c*", "(a.(b|d))*", "a.(b.b)*.c"]
-strings = ["", "abc", "abbc", "abcc", "abad", "abbbc"]
-
-for i in infixes:
-    for s in strings:
-        print(match(i, s), i, s)
+## Testcases for the matchString function
+# infixes = ["a.b.c*", "a.(b|d).c*", "(a.(b|d))*", "a.(b.b)*.c"]
+# strings = ["", "abc", "abbc", "abcc", "abad", "abbbc"]
+#
+# for i in infixes:
+#    for s in strings:
+#        print(match(i, s), i, s)
+#
