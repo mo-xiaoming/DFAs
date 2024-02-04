@@ -1,58 +1,191 @@
+import re
 from lib.regex import match
+import pytest
 
 
-def test_empty_pattern():
-    assert match("", "")
-
-
-def test_literal():
-    assert match("a", "a")
-    assert match("aa", "aa")
-    assert match("abc", "abc")
-    assert not match("a", "b")
-    assert not match("aa", "ab")
-
-
-def test_alternation():
-    assert match("a|b", "a")
-    assert match("a|b", "b")
-    assert not match("a|b", "")
-    assert not match("a|b", "c")
-    assert match("a|b|c", "a")
-    assert match("a|b|c", "b")
-    assert match("a|b|c", "c")
-    assert not match("a|b|c", "")
-    assert not match("a|b|c", "d")
-    assert match("a|b|c|d", "a")
-    assert match("a|b|c|d", "b")
-    assert match("a|b|c|d", "c")
-    assert match("a|b|c|d", "d")
-    assert not match("a|b|c|d", "")
-    assert not match("a|b|c|d", "e")
-
-
-def test_dot():
-    assert match("a.b", "acb")
-    assert match("a.b", "aab")
-    assert match("a.b", "abb")
-    assert not match("a.b", "")
-    assert not match("a.b", "a")
-    assert not match("a.b", "f")
-    assert not match("a.b", "ab")
-    assert not match("a.b", "bbb")
-    assert not match("a.b", "abbb")
-
-
-def test_star():
-    assert match("b*", "")
-    assert match("b*", "b")
-    assert match("b*", "bb")
-    assert match("b*", "bbb")
-    assert match("ab*", "abbb")
-    assert match("ab*", "a")
-    assert match("ab*", "ab")
-    assert not match("a*", "b")
-    assert not match("a*", "bb")
-    assert not match("a*", "ab")
-    assert not match("a*", "ba")
-    assert not match("a*", "aab")
+@pytest.mark.parametrize(
+    "p, s",
+    [
+        ("", ""),
+        ("", "a"),
+        ("", "ab"),
+        ("a", "a"),
+        ("a", "b"),
+        ("a", "ab"),
+        ("aa", "aa"),
+        ("aa", "ab"),
+        ("ab", "ab"),
+        ("ab", "a"),
+        ("ab", "b"),
+        ("abc", "abc"),
+        (".", ""),
+        (".", "a"),
+        (".", "ab"),
+        (".", "."),
+        ("a.", "ab"),
+        ("a.", "a"),
+        ("a.", "b"),
+        ("a.", "abc"),
+        (".a", "ab"),
+        (".a", "a"),
+        (".a", "ba"),
+        (".a", "bac"),
+        ("a.b", "acb"),
+        ("a.b", "aab"),
+        ("a.b", "abb"),
+        ("a.b", ""),
+        ("a.b", "a"),
+        ("a.b", "f"),
+        ("a.b", "ab"),
+        ("a.b", "bbb"),
+        ("a.b", "abbb"),
+        (".a.b", "abbb"),
+        (".a.b", "babb"),
+        (".a.b", "babbc"),
+        ("..", ""),
+        ("..", "a"),
+        ("..", "ab"),
+        ("..", "abc"),
+        (".a.", "abc"),
+        (".a.", "bac"),
+        ("a|b", "a"),
+        ("a|b", "b"),
+        ("a|b", "c"),
+        ("a|b", ""),
+        ("a|b|c", "a"),
+        ("a|b|c", "b"),
+        ("a|b|c", "c"),
+        ("a|b|c", ""),
+        ("a|b|c", "d"),
+        ("b?", ""),
+        ("b?", "b"),
+        ("b?", "ba"),
+        ("b?", "a"),
+        ("b?", "bb"),
+        ("b?", "bbb"),
+        ("ab?", "abbb"),
+        ("ab?", "ab"),
+        ("ab?aa?", "aba"),
+        ("ab?aa?", "abaa"),
+        ("ab?aa?", "abaaa"),
+        ("a??", "a"),
+        ("a??", ""),
+        (".?", ""),
+        (".?", "a"),
+        (".?", "b"),
+        (".?", "ab"),
+        ("ab|c", "ab"),
+        ("ab|c", "ac"),
+        ("ab|c", "abc"),
+        ("ab|cd", "cd"),
+        ("ab|.d", "xd"),
+        ("b*", ""),
+        ("b*", "b"),
+        ("b*", "bb"),
+        ("b*", "bbb"),
+        ("ab*", "a"),
+        ("ab*", "ab"),
+        ("ab*", "abb"),
+        ("ab*", "abbb"),
+        ("a*", "b"),
+        ("a*", "bb"),
+        (".*a*", ""),
+        (".*a*", "a"),
+        (".*a*", "aa"),
+        (".*abc", "dddabc"),
+        ("a*a*", ""),
+        ("a*a*", "a"),
+        ("a*a*", "aa"),
+        ("a*a*", "aaa"),
+        ("a*a*", "aaaa"),
+        ("a*b*", "aaaa"),
+        ("a*b*", "aaab"),
+        ("a*b*", "aabb"),
+        ("a*b*", "abbb"),
+        ("a*b*", "bbbb"),
+        ("a*b*", "ab"),
+        ("a*b*", "a"),
+        ("a*b*", "b"),
+        ("a.*.*b", "a"),
+        ("a.*.*b", "b"),
+        ("a.*.*b", "ab"),
+        ("a.*.*b", "acb"),
+        ("a.*.*b", "accb"),
+        ("a.*c.*b", "accb"),
+        ("c*?", ""),
+        ("c*?", "c"),
+        ("c*?", "cc"),
+        ("c*?", "ccc"),
+        ("b+", ""),
+        ("b+", "a"),
+        ("b+", "b"),
+        ("b+", "bb"),
+        ("b+", "bbb"),
+        ("a+", "ba"),
+        ("a+", "aab"),
+        ("ab+", "abbb"),
+        ("ab+", "ab"),
+        ("aa+", "a"),
+        ("aa+", "aa"),
+        ("aa+", "aaa"),
+        ("aa+", "ab"),
+        ("b.*|a+", ""),
+        ("b.*|a+", "a"),
+        ("b.*|a+", "aa"),
+        ("b.*|a+", "b"),
+        ("b.*|a+", "bb"),
+        ("cded|a+", "cded"),
+        ("cded|a+", "cdeda"),
+        ("cded|a+", "a"),
+        ("cded|a+", ""),
+        ("cded|ba+", "ba"),
+        ("a(bcd|efg)h", "abcdh"),
+        ("a(bcd|efg)h", "efgh"),
+        ("a(bcd|efg)h", "abefgh"),
+        ("a(bcd|efg)h", "abefg"),
+        ("bca(bcd|efg)h", "bcaefgh"),
+        ("bca(bcd|efg)h", "bcabcdh"),
+        ("bca(bcd|efg)hca", "bcabcdhca"),
+        ("(bcd|efg)", "bcd"),
+        ("(bcd|efg)", "efg"),
+        ("(bcd|efg)?", "efg"),
+        ("(bcd|efg)?", "bcd"),
+        ("(bcd|efg)?", ""),
+        ("a(b(c|d)e)f", "abcef"),
+        ("a(b(c|d)e)f", "abdef"),
+        ("a(b(c|d)e)f", "a"),
+        ("a(b(c|d)e)f", "abf"),
+        ("a(b(c|d)e)f", "abcef"),
+        ("a(b(c|d)e)f", "abdef"),
+        ("a(b(c|d)e)f", "abceef"),
+        ("a(b(c|d)e)f", "abdeef"),
+        ("a(b(c|d)e)f", "abceef"),
+        ("a(b(c|d)e)f", "abdeef"),
+        ("a(b|c)*d", "ad"),
+        ("a(b|c)*d", "abd"),
+        ("a(b|c)*d", "acd"),
+        ("a(b|c)*d", "abbd"),
+        ("a(b|c)*d", "accd"),
+        ("a(b|c)*d", "abbbd"),
+        ("a(b|c)*d", "acccd"),
+        ("a(b|c)*d", "abbbbd"),
+        ("a(b|c)*d", "abbbbd"),
+        ("a(b|c)*d", "a"),
+        ("a(b|c)*d", "ad"),
+        ("a(b|c)*d", "ab"),
+        ("a(b|c)*d", "ac"),
+        ("a(b|c)*d", "abcd"),
+        ("a(b|c)*d", "abbb"),
+        ("a(b|c)*d", "acccd"),
+        ("(a.(b|d))*", ""),
+        ("(a.(b|d))*", "a"),
+        ("(a.(b|d))*", "ab"),
+        ("(a.(b|d))*", "adc"),
+        ("(a.(b|d))*", "abb"),
+        ("(a.(b|d))*", "abd"),
+        ("(a.(b|d))*", "abdadd"),
+        ("(a.(b|d))*", "abdaddabb"),
+    ],
+)
+def test_basic_regex(p, s):
+    assert match(p, s) == bool(re.fullmatch(p, s)), f"p={p}, s={s}"
