@@ -60,38 +60,34 @@ def thompsons_construction(pofix):
     # looping through the postfix expression
     # one character at a time
     for c in pofix:
-        # If c is the 'kleene star' operator
+        #                          edge1
+        #                    +----------------+
+        #          edge1     v                |      edge2
+        # start -+-------> nfa.start      nfa.accept -------+--> accept
+        #        |                                          |
+        #        +------------------------------------------+
+        #          edge2
+        #
+        # stack <- (start, accept)
         if c == "*":
-            # Pops single NFA from the stack
             nfa1 = nfaStack.pop()
-            # Creating new start and accept state
             start, accept = State(), State()
-            # Join the new start state to nfa's
-            # start state and new accept state
             start.edge1, start.edge2 = nfa1.start, accept
-            # Join old accept state to the new accept state and nfa's start state
             nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
-            # Pushes the new NFA to the stack
             nfaStack.append(NFA(start, accept))
         elif c == "|":
-            #                 + --+ nfa1.start  nfa1.accept --+
+            #                 + --> nfa1.start  nfa1.accept -->
             #         edge1  /                                  \  edge1
-            # start --------+                                    +------ accept
+            # start --------+                                    +-----> accept
             #         edge2  \                                  /  edge2
-            #                 + --+ nfa2.start  nfa2.accept --+
+            #                 + --> nfa2.start  nfa2.accept -->
             #
             # stack <- (start, accept)
 
-            # Popping the stack
             nfa2, nfa1 = nfaStack.pop(), nfaStack.pop()
-            # creates the start state
-            start = State()
+            start, accept = State(), State()
             start.edge1, start.edge2 = nfa1.start, nfa2.start
-            # creates new accept state connecting the accept states
-            accept = State()
-            # Connects the new Accept state to the two NFA's popped from the stack
             nfa1.accept.edge1, nfa2.accept.edge1 = accept, accept
-            # Pushes the new NFA to the stack
             nfaStack.append(NFA(start, accept))
         # If c is the 'plus' operator
         elif c == "+":
@@ -125,12 +121,8 @@ def thompsons_construction(pofix):
             # start[lable:c] -----------> accept
             #
             # stack <- (start, accept)
-
-            # accept state, start state - creating a new instance of the class
-            accept, start = State(), State()
-            # joins the start to a character, edge1 is a pointer which points to the accept state
+            start, accept = State(), State()
             start.label, start.edge1 = c, accept
-            # Appends the new NFA to the stack
             nfaStack.append(NFA(start, accept))
 
     # at this point, nfastack should have a single nfa on it
