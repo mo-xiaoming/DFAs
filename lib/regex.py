@@ -1,7 +1,7 @@
 # `^`, `$`, `.`, `*`, `+`, `?`, `|`
-# `.*?`, `.+?`, `.{m,n}?`
 # `{m}`, `{m,}`, `{,n}`, `{m,n}`
 # `[]` character set, `[^]` negated character set
+# `.*?`, `.+?`, `.{m,n}?`
 # group `(...)` and named group `(?<name>...)`
 # backtracing `\n`
 # lookahead `(?=...)` and `(?!...)`
@@ -15,7 +15,39 @@ from typing import Set
 
 
 def insert_concatenation_operators(infix):
+    i = 0
+    while i < len(infix):
+        if infix[i] == "{":
+            end = infix.index("}", i)
+            tokens = infix[i + 1 : end].split(",")
+            m = n = None
+            if len(tokens) == 1:
+                m = n = int(tokens[0])
+            elif len(tokens) == 2:
+                m = int(tokens[0]) if tokens[0] else 0
+                n = int(tokens[1]) if tokens[1] else None
+            preceding_end = i - 1
+            if infix[preceding_end] == ")":
+                open_brackets = 1
+                while open_brackets > 0:
+                    preceding_end -= 1
+                    if infix[preceding_end] == ")":
+                        open_brackets += 1
+                    elif infix[preceding_end] == "(":
+                        open_brackets -= 1
+            preceding_start = preceding_end
+            preceding = infix[preceding_start:i]
+            before, after = infix[:preceding_start], infix[end + 1 :]
+            expanded = preceding * m
+            if n is None:
+                expanded += preceding + "*"
+            else:
+                expanded += (preceding + "?") * (n - m)
+            infix = before + expanded + after
+        i += 1
+
     infix = list(infix)
+
     for i in range(len(infix) - 1, 0, -1):
         if (infix[i].isalnum() or infix[i] in (".", "(")) and (
             infix[i - 1].isalnum() or infix[i - 1] in (")", ".", "*", "+", "?")

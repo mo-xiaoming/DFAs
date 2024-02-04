@@ -1,5 +1,5 @@
 import re
-from lib.regex import match
+from lib.regex import match, insert_concatenation_operators
 import pytest
 
 
@@ -185,7 +185,55 @@ import pytest
         ("(a.(b|d))*", "abd"),
         ("(a.(b|d))*", "abdadd"),
         ("(a.(b|d))*", "abdaddabb"),
+        ("a{0}", ""),
+        ("b{3,4}a", "bbba"),
+        ("b{3,4}a", "bbbba"),
+        ("b{3,4}a", "bbbbba"),
+        ("b{3,4}a", "bba"),
     ],
 )
 def test_basic_regex(p, s):
+    assert match(p, s) == bool(re.fullmatch(p, s)), f"p={p}, s={s}"
+
+
+@pytest.mark.parametrize(
+    "p, s",
+    [
+        ("a{0}", ""),
+        ("a{1}", "a"),
+        ("a{2}", "a~a"),
+        ("a{2,}", "a~a~a*"),
+        ("a{0,1}", "a?"),
+        ("a{0,0}", ""),
+        ("a{0,2}", "a?~a?"),
+        ("a{1,2}", "a~a?"),
+        ("a{2,4}", "a~a~a?~a?"),
+        ("a{2,2}", "a~a"),
+    ],
+)
+def test_invalid_regex(p, s):
+    assert insert_concatenation_operators(p) == s
+
+
+@pytest.mark.parametrize(
+    "p, s",
+    [
+        ("a{3,4}b{2,3}c{1,2}", "aaabbc"),
+        ("a{3,4}b{2,3}c{1,2}", "aaabbc"),
+        ("a{3,4}b{2,3}c{1,2}", "aaaabbbcc"),
+        ("a{3}b{,3}c{1,}", "aaabbbc"),
+        ("a{3}b{,3}c{1,}", "aaabbc"),
+        ("a{3}b{,3}c{1,}", "aaabc"),
+        ("a{3}b{,3}c{1,}", "aaac"),
+        ("a(a|b){2,3}", "aab"),
+        ("a(a|b){2,3}", "aaba"),
+        ("(a(a|b)){2,3}", "aaab"),
+        ("(a(a|b)){2,3}", "aaabab"),
+        ("(a(a|b)){2,3}", "aaababab"),
+        ("(a{2,3}){3}", "aaaaaa"),
+        ("(a{2,3}){3}", "aaaaaaaaa"),
+        ("(a{2,3}){3}", "aaaaaaaa"),
+    ],
+)
+def test_expanded_regex(p, s):
     assert match(p, s) == bool(re.fullmatch(p, s)), f"p={p}, s={s}"
