@@ -50,37 +50,23 @@ class NFA:
 
 
 def thompsons_construction(pofix):
-    # Creates new empty set
-    nfaStack = []
-
     if len(pofix) == 0:
         s = State()
         return NFA(s, s)
 
-    # looping through the postfix expression
-    # one character at a time
+    nfaStack = []
+
     for c in pofix:
-        #                          edge1
-        #                    +----------------+
-        #          edge1     v                |      edge2
-        # start -+-------> nfa.start      nfa.accept -------+--> accept
-        #        |                                          |
-        #        +------------------------------------------+
-        #          edge2
-        #
-        # stack <- (start, accept)
-        if c == "*":
-            nfa1 = nfaStack.pop()
-            start, accept = State(), State()
-            start.edge1, start.edge2 = nfa1.start, accept
-            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
-            nfaStack.append(NFA(start, accept))
-        elif c == "|":
+        if c == "|":
+            #                                                edge1
             #                 + --> nfa1.start  nfa1.accept -->
-            #         edge1  /                                  \  edge1
-            # start --------+                                    +-----> accept
-            #         edge2  \                                  /  edge2
+            #         edge1  /                                  \
+            #               /                                    \
+            # start ------->                                      +-----> accept
+            #               \                                    /
+            #         edge2  \                                  /
             #                 + --> nfa2.start  nfa2.accept -->
+            #                                                 edge1
             #
             # stack <- (start, accept)
 
@@ -89,32 +75,45 @@ def thompsons_construction(pofix):
             start.edge1, start.edge2 = nfa1.start, nfa2.start
             nfa1.accept.edge1, nfa2.accept.edge1 = accept, accept
             nfaStack.append(NFA(start, accept))
-        # If c is the 'plus' operator
-        elif c == "+":
-            # Pops single NFA from the stack
+        elif c == "*":
+            #                          edge1
+            #                    +----------------+
+            #          edge1     v                |      edge2
+            # start -+-------> nfa.start      nfa.accept -------+--> accept
+            #        |                                          |
+            #        +------------------------------------------+
+            #          edge2
+            #
+            # stack <- (start, accept)
             nfa1 = nfaStack.pop()
-            # Creating new start and accept state
             start, accept = State(), State()
-            # Join the new start state to nfa's
-            # start state and new accept state
-            start.edge1 = nfa1.start
-            # Join old accept state to the new accept state and nfa's start state
-            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
-            # Pushes the new NFA to the stack
-            nfaStack.append(NFA(start, accept))
-        # if c is the '?' operator
-        elif c == "?":
-            # Pops a single NFA from the stack
-            nfa1 = nfaStack.pop()
-            # Creates new start and accept states for the new NFA
-            accept, start = State(), State()
-            # Joins the new accept state to the accept state of nfa1 and the new
-            # start state to the start state of nfa1
-            # Accept connected to inital because empty is acceptable
             start.edge1, start.edge2 = nfa1.start, accept
-            # Joins the old accept state to the new accept state
+            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
+            nfaStack.append(NFA(start, accept))
+        elif c == "+":
+            #                          edge1
+            #                    +----------------+
+            #          edge1     v                |      edge2
+            # start ---------> nfa.start      nfa.accept ----------> accept
+            #
+            # stack <- (start, accept)
+            nfa1 = nfaStack.pop()
+            start, accept = State(), State()
+            start.edge1 = nfa1.start
+            nfa1.accept.edge1, nfa1.accept.edge2 = nfa1.start, accept
+            nfaStack.append(NFA(start, accept))
+        elif c == "?":
+            #          edge1                              edge1
+            # start -+-------> nfa.start      nfa.accept -------+--> accept
+            #        |                                          |
+            #        +------------------------------------------+
+            #          edge2
+            #
+            # stack <- (start, accept)
+            nfa1 = nfaStack.pop()
+            accept, start = State(), State()
+            start.edge1, start.edge2 = nfa1.start, accept
             nfa1.accept.edge1 = accept
-            # Pushes the new NFA to the stack
             nfaStack.append(NFA(start, accept))
         else:  # char or dot
             #                    edge1
@@ -125,8 +124,11 @@ def thompsons_construction(pofix):
             start.label, start.edge1 = c, accept
             nfaStack.append(NFA(start, accept))
 
-    # at this point, nfastack should have a single nfa on it
-    # return nfaStack.pop()
+    # final concatenation
+    #                                    edge1
+    # nfaPopped.start  nfaPopped.accept -------> nfa.start  nfa.accept
+    #
+    # new nfa = (nfaPopped.start, nfa.accept)
     result = nfaStack.pop()
     while len(nfaStack) > 0:
         f = nfaStack.pop()
