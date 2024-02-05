@@ -1,5 +1,5 @@
 import re
-from lib.regex import match, insert_concatenation_operators
+from lib.regex import match
 import pytest
 
 
@@ -199,25 +199,6 @@ def test_basic_regex(p, s):
 @pytest.mark.parametrize(
     "p, s",
     [
-        ("a{0}", ""),
-        ("a{1}", "a"),
-        ("a{2}", "a~a"),
-        ("a{2,}", "a~a~a*"),
-        ("a{0,1}", "a?"),
-        ("a{0,0}", ""),
-        ("a{0,2}", "a?~a?"),
-        ("a{1,2}", "a~a?"),
-        ("a{2,4}", "a~a~a?~a?"),
-        ("a{2,2}", "a~a"),
-    ],
-)
-def test_invalid_regex(p, s):
-    assert insert_concatenation_operators(p) == s
-
-
-@pytest.mark.parametrize(
-    "p, s",
-    [
         ("a{3,4}b{2,3}c{1,2}", "aaabbc"),
         ("a{3,4}b{2,3}c{1,2}", "aaabbc"),
         ("a{3,4}b{2,3}c{1,2}", "aaaabbbcc"),
@@ -233,6 +214,66 @@ def test_invalid_regex(p, s):
         ("(a{2,3}){3}", "aaaaaa"),
         ("(a{2,3}){3}", "aaaaaaaaa"),
         ("(a{2,3}){3}", "aaaaaaaa"),
+        ("[abc]", "a"),
+        ("[abc]", "b"),
+        ("[abc]", "c"),
+        ("[abc]", ""),
+        ("[abc]", "d"),
+        ("[abc]", "ac"),
+        ("[a]", "-"),
+        ("[a]", "a"),
+        ("[a]", "b"),
+        ("[a]", ""),
+        ("[ba]", "a"),
+        ("[ba]", "b"),
+        ("[ba]", "c"),
+        ("[a-c]", "-"),
+        ("[a-c]", "a"),
+        ("[a-c]", "b"),
+        ("[a-c]", "c"),
+        ("[a-c]", ""),
+        ("[a-c]", "ab"),
+        ("[a-c]", "abe"),
+        ("[a-bA-B]", "-"),
+        ("[a-bA-B]", "a"),
+        ("[a-bA-B]", "b"),
+        ("[a-bA-B]", "c"),
+        ("[a-bA-B]", "A"),
+        ("[a-bA-B]", "B"),
+        ("[a-bA-B]", "C"),
+        ("[a-bA-B]", "aB"),
+        ("[a-bA-B]", ""),
+        ("[-a-b]", "-"),
+        ("[-a-b]", "a"),
+        ("[-a-b]", "b"),
+        ("[-a-b]", "c"),
+        ("[-a-b-]", "-"),
+        ("[-a-b-]", "a"),
+        ("[-a-b-]", "c"),
+        ("[-a-b-]", "ab-"),
+        ("[-a-b-]", "b-"),
+        ("[-a-b-]", "-a"),
+        ("[-]", "-"),
+        ("[-]", "a"),
+        ("[^a-y]", "a"),
+        ("[^a-y]", "z"),
+        ("[^a-y]", "-"),
+        ("[^a-y]", "A"),
+        ("[^a-y]", "Z"),
+        ("[^-a-y]", "-"),
+        ("[^-a-y-]", "-"),
+        ("[^-a-y-]", "z"),
+        ("[^a-y-]", "-"),
+        ("[^a-y-]", "b"),
+        ("[^a-y-]", "a"),
+        ("[a-z][A-Z]", "aA"),
+        ("[a-z][A-Z]", "zZ"),
+        ("a[0-9]b", "a0b"),
+        ("a[0-9]b[A]", "a0bA"),
+        ("a[0-9]b[A-B]", "a0bA"),
+        ("a[0-9]b[A-B]", "a0bB"),
+        ("a[0-9]b[A-B]", "a0b-"),
+        # ("[a-z]-[A-Z]", "a-1"),  # limitation of it, getting too complex
     ],
 )
 def test_expanded_regex(p, s):

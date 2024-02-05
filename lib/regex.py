@@ -46,6 +46,41 @@ def insert_concatenation_operators(infix):
             infix = before + expanded + after
         i += 1
 
+    def expand_range(charset):
+        i = charset.find("-", 0)
+        while i > 0 and i < len(charset) - 1:
+            start, end = charset[i - 1], charset[i + 1]
+            expanded = "".join(chr(c) for c in range(ord(start), ord(end) + 1))
+            charset = charset[: i - 1] + expanded + charset[i + 2 :]
+            i = charset.find("-", i + 2)
+        return charset
+
+    def escape(charset):
+        # for now we just filter out the special characters
+        return "".join(
+            c
+            for c in charset
+            if c
+            not in ("*", "+", "?", ".", "(", ")", "|", "~", "[", "]", "\\", "{", "}")
+        )
+
+    i = 0
+    while i < len(infix):
+        if infix[i] == "[":
+            end = infix.index("]", i)
+            if infix[i + 1] == "^":
+                charset = infix[i + 2 : end]
+                charset = expand_range(charset)
+                charset = "".join(chr(c) for c in range(256) if chr(c) not in charset)
+            else:
+                charset = infix[i + 1 : end]
+                charset = expand_range(charset)
+            charset = escape(charset)
+            expanded = "(" + "|".join(charset) + ")"
+            infix = infix[:i] + expanded + infix[end + 1 :]
+            i += len(expanded) - 1
+        i += 1
+
     infix = list(infix)
 
     for i in range(len(infix) - 1, 0, -1):
