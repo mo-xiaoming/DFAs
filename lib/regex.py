@@ -10,6 +10,7 @@
 # Derivatives of Regular Expressions
 # Glushkov's Construction Algorithm
 
+from collections import deque
 from dataclasses import dataclass
 from typing import Set
 
